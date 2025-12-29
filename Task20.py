@@ -1,11 +1,11 @@
+from math import factorial
 
-def cound_alp_nums(filename='names.txt'):
-    nsum = 0
-    with open(filename) as f:
-        names = sorted(map(lambda x: x.strip('"'), (','.join(f.readlines())).split(',')))
-        for i, x in enumerate(names):
-            nsum += sum(map(lambda y: ord(y) - ord('A') + 1, list(x))) * (i + 1)
-    return nsum
+def count_digit_sum(number=factorial(100)):
+    cnt = 0
+    while number:
+        cnt += number % 10
+        number //= 10
+    return cnt
 
 if __name__ == '__main__':
-    print(cound_alp_nums())
+    print(count_digit_sum())
