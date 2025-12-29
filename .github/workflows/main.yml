@@ -1,0 +1,92 @@
+name: Haskell vs Python Comparison
+
+on:
+  push:
+    branches: [ "main1", "master" ]
+  pull_request:
+    branches: [ "main1", "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Haskell
+      uses: haskell-actions/setup@v2
+      with:
+        ghc-version: '9.4'
+        cabal-version: 'latest'
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    # Компиляция Haskell файлов
+    - name: Compile Task10.hs
+      run: |
+        ghc -O2 Task10.hs -o task10_bin
+
+    - name: Compile Task20.hs
+      run: |
+        ghc -O2 Task20.hs -o task20_bin
+
+    # Тест задачи 10 (Сумма простых чисел)
+    # Ввод: 2000000
+    - name: Compare Task 10 Outputs
+      run: |
+        # 1. Запускаем Python. Предполагаем, что он выводит что-то вроде "Answer: 142913828922"
+        # Используем grep/awk чтобы вытащить последнее слово (число) из вывода Python.
+        # Если ваш Python выводит только число, уберите пайп в awk.
+        PY_OUTPUT_RAW=$(python3 Task10.py)
+        echo "Python Raw Output: $PY_OUTPUT_RAW"
+        
+        # Извлекаем только цифры из вывода Python для поиска
+        PY_RESULT=$(echo "$PY_OUTPUT_RAW" | grep -oE '[0-9]+' | sort -rn | head -n 1)
+        echo "Extracted Python Result: $PY_RESULT"
+
+        # 2. Запускаем Haskell.
+        # Передаем '2000000' на вход через echo, так как программа ждет getLine
+        echo "2000000" | ./task10_bin > haskell_output_10.txt
+        
+        echo "--- Haskell Output ---"
+        cat haskell_output_10.txt
+        echo "----------------------"
+
+        # 3. Сравнение: ищем результат Python внутри вывода Haskell
+        if grep -q "$PY_RESULT" haskell_output_10.txt; then
+          echo "✅ SUCCESS: Python result ($PY_RESULT) found in Haskell output."
+        else
+          echo "❌ FAILURE: Python result ($PY_RESULT) NOT found in Haskell output."
+          exit 1
+        fi
+
+    # Тест задачи 20 (Сумма цифр факториала)
+    # Ввод: 100
+    - name: Compare Task 20 Outputs
+      run: |
+        # 1. Запускаем Python
+        PY_OUTPUT_RAW=$(python3 Task20.py)
+        echo "Python Raw Output: $PY_OUTPUT_RAW"
+        
+        # Извлекаем число (результат задачи)
+        PY_RESULT=$(echo "$PY_OUTPUT_RAW" | grep -oE '[0-9]+' | sort -rn | head -n 1)
+        echo "Extracted Python Result: $PY_RESULT"
+
+        # 2. Запускаем Haskell с вводом '100'
+        echo "100" | ./task20_bin > haskell_output_20.txt
+        
+        echo "--- Haskell Output ---"
+        cat haskell_output_20.txt
+        echo "----------------------"
+
+        # 3. Сравнение
+        if grep -q "$PY_RESULT" haskell_output_20.txt; then
+          echo "✅ SUCCESS: Python result ($PY_RESULT) found in Haskell output."
+        else
+          echo "❌ FAILURE: Python result ($PY_RESULT) NOT found in Haskell output."
+          exit 1
+        fi
